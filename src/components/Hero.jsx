@@ -9,7 +9,7 @@ const stats = [
   { value: 'Kahie', label: 'Personal Brand' },
 ]
 
-const CV_PATH = '/Said-Abdullahi-Mohamed-CV.pdf'
+const CV_PATH = `${import.meta.env.BASE_URL}Said-Abdullahi-Mohamed-CV.pdf`
 
 function Hero() {
   const [cvAvailable, setCvAvailable] = useState(false)
@@ -71,14 +71,30 @@ function Hero() {
               <a href="#projects" className="primary-btn">
                 View My Work
               </a>
+
               <a href="#contact" className="secondary-btn">
                 Contact Me
               </a>
 
               {cvAvailable ? (
-                <a href={CV_PATH} download className="ghost-btn cv-btn cv-ready">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+                <a
+                  href={CV_PATH}
+                  download="Said-Abdullahi-Mohamed-CV.pdf"
+                  className="ghost-btn cv-btn cv-ready"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 2 2h12a2 2 0 0 2-2v-2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   Download CV
                 </a>
@@ -89,8 +105,19 @@ function Hero() {
                   disabled
                   title="Add the PDF at public/Said-Abdullahi-Mohamed-CV.pdf to enable this button"
                 >
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 2 2h12a2 2 0 0 2-2v-2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   CV Coming Soon
                 </button>
