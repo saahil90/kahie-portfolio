@@ -32,14 +32,10 @@ function Contact() {
       [name]: value,
     }))
 
-    setErrors((prev) =>
-      prev[name]
-        ? {
-            ...prev,
-            [name]: undefined,
-          }
-        : prev
-    )
+    setErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }))
 
     setServerError('')
   }
@@ -53,7 +49,7 @@ function Contact() {
 
     if (!form.email.trim()) {
       nextErrors.email = 'Please enter your email.'
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       nextErrors.email = 'Please enter a valid email address.'
     }
 
@@ -67,15 +63,15 @@ function Contact() {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const nextErrors = validate()
-    setErrors(nextErrors)
-    setServerError('')
+    const validationErrors = validate()
 
-    if (Object.keys(nextErrors).length > 0) {
-      setStatus('idle')
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
       return
     }
 
+    setErrors({})
+    setServerError('')
     setStatus('loading')
 
     try {
@@ -90,7 +86,7 @@ function Contact() {
           email: form.email.trim(),
           projectType: form.projectType,
           message: form.message.trim(),
-          _subject: `New Portfolio Project Inquiry — ${form.projectType}`,
+          _subject: `New Portfolio Project Inquiry - ${form.projectType}`,
         }),
       })
 
@@ -98,21 +94,17 @@ function Contact() {
 
       if (!response.ok) {
         throw new Error(
-          data?.errors?.[0]?.message ||
-            'Something went wrong. Please try again.'
+          data?.errors?.[0]?.message || 'Unable to send your message.'
         )
       }
 
       setStatus('sent')
       setForm(initialForm)
-      setErrors({})
     } catch (error) {
-      console.error('Form submission error:', error)
-
+      console.error(error)
       setStatus('error')
       setServerError(
-        error.message ||
-          'Unable to send your message. Please try again later.'
+        error.message || 'Unable to send your message. Please try again.'
       )
     }
   }
@@ -248,14 +240,14 @@ function Contact() {
               {status === 'loading'
                 ? 'Sending...'
                 : status === 'sent'
-                ? 'Message Sent ✓'
-                : 'Send Message'}
+                  ? 'Message Sent ✓'
+                  : 'Send Message'}
             </button>
 
             {status === 'sent' && (
               <p className="form-note form-note-success">
-                Your message has been sent successfully. I’ll get back
-                to you as soon as possible.
+                Your message has been sent successfully. I'll get back to
+                you as soon as possible.
               </p>
             )}
 
@@ -267,8 +259,7 @@ function Contact() {
 
             {status === 'idle' && (
               <p className="form-note">
-                Your message will be sent directly through the contact
-                form.
+                Your message will be sent directly to my inbox.
               </p>
             )}
           </form>
