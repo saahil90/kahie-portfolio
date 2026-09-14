@@ -50,7 +50,7 @@ function Hero() {
 
           <Reveal delay={140}>
             <h1>
-              Said Abdullahi <span className="grad-text">Mohamed.</span>
+              <span className="grad-text">Said</span> Abdullahi Mohamed
             </h1>
           </Reveal>
 

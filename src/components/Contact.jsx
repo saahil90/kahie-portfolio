@@ -16,10 +16,15 @@ const initialForm = {
   message: '',
 }
 
+// BACKEND URL
+const API_URL = 'https://portfolioemailserver-acw8dte1.b4a.run'
+
+// FORMSPREE
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/meajdyna'
 
 function Contact() {
   const [form, setForm] = useState(initialForm)
+  const [otp, setOtp] = useState('')
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [serverError, setServerError] = useState('')
@@ -49,7 +54,9 @@ function Contact() {
 
     if (!form.email.trim()) {
       nextErrors.email = 'Please enter your email.'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+    ) {
       nextErrors.email = 'Please enter a valid email address.'
     }
 
@@ -60,53 +67,127 @@ function Contact() {
     return nextErrors
   }
 
-  const handleSubmit = async (event) => {
+  const handleSendOTP = async (event) => {
     event.preventDefault()
 
-    const validationErrors = validate()
+    const nextErrors = validate()
+    setErrors(nextErrors)
 
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
+    if (Object.keys(nextErrors).length > 0) {
       return
     }
 
-    setErrors({})
     setServerError('')
-    setStatus('loading')
+    setStatus('sending-otp')
 
     try {
-      const response = await fetch(FORMSPREE_ENDPOINT, {
+      const response = await fetch(`${API_URL}/api/send-otp`, {
         method: 'POST',
         headers: {
-          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: form.name.trim(),
           email: form.email.trim(),
-          projectType: form.projectType,
-          message: form.message.trim(),
-          _subject: `New Portfolio Project Inquiry - ${form.projectType}`,
         }),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(
-          data?.errors?.[0]?.message || 'Unable to send your message.'
+          data.message || 'Unable to send verification code.'
         )
       }
 
-      setStatus('sent')
-      setForm(initialForm)
+      setStatus('otp-sent')
     } catch (error) {
       console.error(error)
       setStatus('error')
       setServerError(
-        error.message || 'Unable to send your message. Please try again.'
+        error.message || 'Unable to send verification code.'
       )
     }
+  }
+
+  const handleVerifyAndSend = async (event) => {
+    event.preventDefault()
+
+    if (!otp.trim() || otp.length !== 6) {
+      setServerError('Please enter the 6-digit verification code.')
+      return
+    }
+
+    setServerError('')
+    setStatus('verifying')
+
+    try {
+      const verifyResponse = await fetch(
+        `${API_URL}/api/verify-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: form.email.trim(),
+            otp: otp.trim(),
+          }),
+        }
+      )
+
+      const verifyData = await verifyResponse.json()
+
+      if (!verifyResponse.ok || !verifyData.success) {
+        throw new Error(
+          verifyData.message || 'Invalid verification code.'
+        )
+      }
+
+      setStatus('sending-message')
+
+      const formspreeResponse = await fetch(
+        FORMSPREE_ENDPOINT,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: form.name.trim(),
+            email: form.email.trim(),
+            projectType: form.projectType,
+            message: form.message.trim(),
+            _subject: `New Portfolio Project Inquiry - ${form.projectType}`,
+          }),
+        }
+      )
+
+      const formspreeData = await formspreeResponse.json()
+
+      if (!formspreeResponse.ok) {
+        throw new Error(
+          formspreeData?.errors?.[0]?.message ||
+            'Unable to send your message.'
+        )
+      }
+
+      setStatus('sent')
+    } catch (error) {
+      console.error(error)
+      setStatus('error')
+      setServerError(
+        error.message || 'Something went wrong. Please try again.'
+      )
+    }
+  }
+
+  const resetForm = () => {
+    setForm(initialForm)
+    setOtp('')
+    setErrors({})
+    setServerError('')
+    setStatus('idle')
   }
 
   return (
@@ -147,122 +228,226 @@ function Contact() {
         </Reveal>
 
         <Reveal delay={180} className="contact-form-wrap">
-          <form
-            className="contact-form"
-            onSubmit={handleSubmit}
-            noValidate
-          >
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="name">Name</label>
-
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Your name"
-                  disabled={status === 'loading'}
-                />
-
-                {errors.name && (
-                  <small className="form-error">
-                    {errors.name}
-                  </small>
-                )}
-              </div>
-
-              <div className="form-field">
-                <label htmlFor="email">Email</label>
-
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="you@example.com"
-                  disabled={status === 'loading'}
-                />
-
-                {errors.email && (
-                  <small className="form-error">
-                    {errors.email}
-                  </small>
-                )}
-              </div>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="projectType">Project Type</label>
-
-              <select
-                id="projectType"
-                name="projectType"
-                value={form.projectType}
-                onChange={handleChange}
-                disabled={status === 'loading'}
-              >
-                {projectTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="message">Message</label>
-
-              <textarea
-                id="message"
-                name="message"
-                rows={5}
-                value={form.message}
-                onChange={handleChange}
-                placeholder="Tell me a bit about your project..."
-                disabled={status === 'loading'}
-              />
-
-              {errors.message && (
-                <small className="form-error">
-                  {errors.message}
-                </small>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="primary-btn"
-              disabled={status === 'loading'}
-            >
-              {status === 'loading'
-                ? 'Sending...'
-                : status === 'sent'
-                  ? 'Message Sent ✓'
-                  : 'Send Message'}
-            </button>
-
-            {status === 'sent' && (
+          {status === 'sent' ? (
+            <div className="contact-form">
               <p className="form-note form-note-success">
-                Your message has been sent successfully. I'll get back to
-                you as soon as possible.
+                Message sent successfully!
               </p>
-            )}
 
-            {status === 'error' && (
-              <p className="form-note form-error">
-                {serverError}
-              </p>
-            )}
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={resetForm}
+              >
+                Send Another Message
+              </button>
+            </div>
+          ) : status === 'otp-sent' ||
+            status === 'verifying' ||
+            status === 'sending-message' ? (
+            <form
+              className="contact-form"
+              onSubmit={handleVerifyAndSend}
+            >
+              <div className="form-field">
+                <label htmlFor="otp">
+                  Email Verification Code
+                </label>
 
-            {status === 'idle' && (
+                <input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(event) => {
+                    const value = event.target.value.replace(
+                      /\D/g,
+                      ''
+                    )
+                    setOtp(value)
+                    setServerError('')
+                  }}
+                  placeholder="Enter 6-digit code"
+                  autoComplete="one-time-code"
+                />
+
+                <small className="form-note">
+                  A 6-digit verification code was sent to{' '}
+                  <strong>{form.email}</strong>.
+                </small>
+              </div>
+
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={
+                  status === 'verifying' ||
+                  status === 'sending-message'
+                }
+              >
+                {status === 'verifying'
+                  ? 'Verifying...'
+                  : status === 'sending-message'
+                    ? 'Sending Message...'
+                    : 'Verify & Send Message'}
+              </button>
+
+              {serverError && (
+                <p className="form-note form-error">
+                  {serverError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={async () => {
+                  setServerError('')
+                  setStatus('sending-otp')
+
+                  try {
+                    const response = await fetch(
+                      `${API_URL}/api/send-otp`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          email: form.email.trim(),
+                        }),
+                      }
+                    )
+
+                    const data = await response.json()
+
+                    if (!response.ok || !data.success) {
+                      throw new Error(
+                        data.message ||
+                          'Unable to send verification code.'
+                      )
+                    }
+
+                    setStatus('otp-sent')
+                  } catch (error) {
+                    setStatus('error')
+                    setServerError(
+                      error.message ||
+                        'Unable to send verification code.'
+                    )
+                  }
+                }}
+              >
+                Send Code Again
+              </button>
+            </form>
+          ) : (
+            <form
+              className="contact-form"
+              onSubmit={handleSendOTP}
+              noValidate
+            >
+              <div className="form-row">
+                <div className="form-field">
+                  <label htmlFor="name">Name</label>
+
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Your name"
+                  />
+
+                  {errors.name && (
+                    <small className="form-error">
+                      {errors.name}
+                    </small>
+                  )}
+                </div>
+
+                <div className="form-field">
+                  <label htmlFor="email">Email</label>
+
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                  />
+
+                  {errors.email && (
+                    <small className="form-error">
+                      {errors.email}
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="projectType">
+                  Project Type
+                </label>
+
+                <select
+                  id="projectType"
+                  name="projectType"
+                  value={form.projectType}
+                  onChange={handleChange}
+                >
+                  {projectTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="message">Message</label>
+
+                <textarea
+                  id="message"
+                  name="message"
+                  rows={5}
+                  value={form.message}
+                  onChange={handleChange}
+                  placeholder="Tell me a bit about your project..."
+                />
+
+                {errors.message && (
+                  <small className="form-error">
+                    {errors.message}
+                  </small>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={status === 'sending-otp'}
+              >
+                {status === 'sending-otp'
+                  ? 'Sending Code...'
+                  : 'Send Message'}
+              </button>
+
+              {status === 'error' && (
+                <p className="form-note form-error">
+                  {serverError}
+                </p>
+              )}
+
               <p className="form-note">
-                Your message will be sent directly to my inbox.
+                You will receive a verification code before your
+                message is sent.
               </p>
-            )}
-          </form>
+            </form>
+          )}
         </Reveal>
       </div>
     </section>
