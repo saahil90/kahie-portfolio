@@ -17,7 +17,7 @@ const initialForm = {
 }
 
 // BACKEND URL
-const API_URL = 'https://portfolioemailserver-acw8dte1.b4a.run'
+const API_URL = 'https://tomb-stark-gecko.abasthan.app'
 
 // FORMSPREE
 const FORMSPREE_ENDPOINT = 'https://formspree.io/f/meajdyna'
@@ -27,7 +27,7 @@ function Contact() {
   const [otp, setOtp] = useState('')
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
-  const [serverError, setServerError] = useState('')
+  const [serverError, setServerError] = useState('') 
 
   const handleChange = (event) => {
     const { name, value } = event.target
